@@ -1,6 +1,7 @@
 #!/bin/python3
 import os.path
 import json
+import argparse as arg
 import requests as req
 from io import BytesIO
 from PIL import Image
@@ -50,9 +51,12 @@ def get_card(query):
 
 def main():
     print(GREEN + "BoltBot" + ENDC)
-    #all_cards = Card.all()
 
-    get_card(TEST_CARD)
+    parser = arg.ArgumentParser(description='BoltBot: MTG Card Search Bot')
+    parser.add_argument('query',help='a query of card names')
+    args = parser.parse_args()
+
+    get_card(args.query)
     
 if __name__ == "__main__":
     main()
