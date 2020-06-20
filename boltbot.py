@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/python3
 import os.path
 import json
 import requests as req
@@ -31,19 +31,17 @@ def get_card(query):
             cards = json.loads(query_rsp.text)
             json.dump(cards, f, ensure_ascii = False, indent = 4) 
 
-    for i, card in enumerate(cards['cards']):
-
-        # TODO Filter out Dups in json 
-        # Keep card instance with has a multiverid 
-        if card['name'] == cards['cards'][i - 1]['name']:
-              continue;
         
+    # Filter out Dups in json 
+    # Keep card instance with has a multiverid 
+    unique_cards = {each['name'] : each for each in cards['cards'] if "multiverseid" in each}.values()
+    print(GREEN + "Found " + str(len(unique_cards)) + " unique matchs" + ENDC)
+    for i, card in enumerate(unique_cards):
         print(GREEN + "Card Found: " + str(card['name']) + ENDC)
         print(GREEN + "Mana Cost: " + str(card['manaCost']) + ENDC)
         print(GREEN + "Type:  " + str(card['type']) + ENDC)
-        print(GREEN + "Text:  " + str(card['text']) + ENDC + "\r\n")
-        #print(GREEN + "Card URL: " + str(card['imageUrl']) + ENDC + "\r\n")
-        
+        print(GREEN + "Text:  " + str(card['text']) + ENDC)
+        print(GREEN + "Card URL: " + str(card['imageUrl']) + ENDC + "\r\n")
         
 
     #get_image = req.get(card.image_url)
