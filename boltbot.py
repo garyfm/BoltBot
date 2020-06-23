@@ -15,9 +15,9 @@ CARDS_FILE = 'all_cards.json'
 MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
 
 def get_all_cards():
-
+    # TODO: Define updated function based on local sets vs queired sets
     # Get all cards
-    query_rsp = req.get(MTG_API_URL)
+    query_rsp = req.get(MTG_API_URL, params={'name':"Lightning"})
     if query_rsp.status_code != 200:
         print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
         return query_rsp.status_code
@@ -27,28 +27,19 @@ def get_all_cards():
         cards = json.loads(query_rsp.text)
         json.dump(cards, f, ensure_ascii = False, indent = 4) 
 
-
 def get_card(query, args):
+    with open(CARDS_FILE, 'r') as f:
+        raw_cards = f.read()
+        cards = json.loads(raw_cards)
+    
+    matches = list()
+    for card in cards['cards']:
+        if query in card['name']: 
+            matches.append(card)
 
-    #if os.path.exists(CARDS_FILE):
-    #   with open(CARDS_FILE, 'r') as f:
-    #       ;cards = json.load(f)
-    #else: 
-    # TODO: Define updated function based on local sets vs queired sets
-
-    query_rsp = req.get(MTG_API_URL, params={'name': query})
-    if query_rsp.status_code != 200:
-        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
-        return
-
-    with open(CARDS_FILE, 'w') as f:
-        cards = json.loads(query_rsp.text)
-        json.dump(cards, f, ensure_ascii = False, indent = 4) 
-
-        
     # Filter out Dups in json 
     # Keep card instance with has a multiverid 
-    unique_cards = {each['name'] : each for each in cards['cards'] if "multiverseid" in each}.values()
+    unique_cards = {each['name'] : each for each in matches if "multiverseid" in each}.values()
     print(GREEN + "Found " + str(len(unique_cards)) + " unique matches" + ENDC)
     for i, card in enumerate(unique_cards):
         if args.text:
@@ -63,11 +54,13 @@ def display_card_text(card):
     print(GREEN + "Type:  " + str(card['type']) + ENDC)
     print(GREEN + "Text:  " + str(card['text']) + ENDC)
     print(GREEN + "Card URL: " + str(card['imageUrl']) + ENDC + "\r\n")
+    return
 
 def display_card_image(card):
     get_image = req.get(card['imageUrl'])
     card_image = Image.open(BytesIO(get_image.content))
     card_image.show()
+    return
 
 def main():
     print(GREEN + "BoltBot" + ENDC)
@@ -80,8 +73,12 @@ def main():
 
     args = parser.parse_args()
 
-    #get_card(args.query, args)
-    get_all_cards()
+    if not os.path.exists(CARDS_FILE):
+        get_all_cards() 
+
+    get_card(args.query, args)
     
+
+
 if __name__ == "__main__":
     main()
