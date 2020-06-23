@@ -14,7 +14,20 @@ ENDC = '\033[0m'
 CARDS_FILE = 'all_cards.json'
 MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
 
-# TODO Pass in seach queires as an optional arg
+def get_all_cards():
+
+    # Get all cards
+    query_rsp = req.get(MTG_API_URL)
+    if query_rsp.status_code != 200:
+        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+        return query_rsp.status_code
+
+    # Save Cards 
+    with open(CARDS_FILE, 'w') as f:
+        cards = json.loads(query_rsp.text)
+        json.dump(cards, f, ensure_ascii = False, indent = 4) 
+
+
 def get_card(query, args):
 
     #if os.path.exists(CARDS_FILE):
@@ -22,8 +35,12 @@ def get_card(query, args):
     #       ;cards = json.load(f)
     #else: 
     # TODO: Define updated function based on local sets vs queired sets
+
     query_rsp = req.get(MTG_API_URL, params={'name': query})
-    # TODO Catch Failure
+    if query_rsp.status_code != 200:
+        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+        return
+
     with open(CARDS_FILE, 'w') as f:
         cards = json.loads(query_rsp.text)
         json.dump(cards, f, ensure_ascii = False, indent = 4) 
@@ -32,12 +49,13 @@ def get_card(query, args):
     # Filter out Dups in json 
     # Keep card instance with has a multiverid 
     unique_cards = {each['name'] : each for each in cards['cards'] if "multiverseid" in each}.values()
-    print(GREEN + "Found " + str(len(unique_cards)) + " unique matchs" + ENDC)
+    print(GREEN + "Found " + str(len(unique_cards)) + " unique matches" + ENDC)
     for i, card in enumerate(unique_cards):
         if args.text:
             display_card_text(card)
         if args.image:
             display_card_image(card)
+    return
 
 def display_card_text(card):
     print(GREEN + "Card Found: " + str(card['name']) + ENDC)
@@ -62,7 +80,8 @@ def main():
 
     args = parser.parse_args()
 
-    get_card(args.query, args)
+    #get_card(args.query, args)
+    get_all_cards()
     
 if __name__ == "__main__":
     main()
