@@ -15,11 +15,15 @@ CARDS_FILE = 'all_cards.json'
 MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
 
 # TODO: Define updated function based on local sets vs queired sets
+
 def get_all_cards():
-    query_rsp = req.get(MTG_API_URL, params={'name':"Lightning"})
+    #query_rsp = req.get(MTG_API_URL, params={'name':"Lightning"})
+    query_rsp = req.get(MTG_API_URL)
     if query_rsp.status_code != 200:
-            print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
-            return query_rsp.status_code
+        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+        os.remove(CARDS_FILE)
+        return query_rsp.status_code
+    page_count = 1
 
     with open(CARDS_FILE, 'w') as f:
         cards = json.loads(query_rsp.text)
@@ -27,14 +31,18 @@ def get_all_cards():
 
         while 'next' in query_rsp.links:
             query_rsp = req.get(query_rsp.links['next']['url'])
-            page = json.loads(query_rsp.text)
-            page = page['cards']
-
             if query_rsp.status_code != 200:
+                # TODO If fails delete the file
                 print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+                os.remove(CARDS_FILE)
                 return query_rsp.status_code
             
+            page = json.loads(query_rsp.text)
+            page = page['cards']
             cards.extend(page)
+            page_count  += 1 
+            print(GREEN + "Got Page: " + str(page_count) + ENDC)
+
         json.dump(cards, f, ensure_ascii = False, indent = 4) 
         
 def get_card(query, args):
@@ -84,6 +92,7 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(CARDS_FILE):
+        # TODO Check if empty
         get_all_cards() 
 
     get_card(args.query, args)
