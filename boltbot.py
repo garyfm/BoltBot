@@ -14,34 +14,44 @@ ENDC = '\033[0m'
 CARDS_FILE = 'all_cards.json'
 MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
 
+# TODO: Define updated function based on local sets vs queired sets
 def get_all_cards():
-    # TODO: Define updated function based on local sets vs queired sets
-    # Get all cards
     query_rsp = req.get(MTG_API_URL, params={'name':"Lightning"})
     if query_rsp.status_code != 200:
-        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
-        return query_rsp.status_code
+            print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+            return query_rsp.status_code
 
-    # Save Cards 
     with open(CARDS_FILE, 'w') as f:
         cards = json.loads(query_rsp.text)
-        json.dump(cards, f, ensure_ascii = False, indent = 4) 
+        cards = cards['cards']
 
+        while 'next' in query_rsp.links:
+            query_rsp = req.get(query_rsp.links['next']['url'])
+            page = json.loads(query_rsp.text)
+            page = page['cards']
+
+            if query_rsp.status_code != 200:
+                print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+                return query_rsp.status_code
+            
+            cards.extend(page)
+        json.dump(cards, f, ensure_ascii = False, indent = 4) 
+        
 def get_card(query, args):
     with open(CARDS_FILE, 'r') as f:
         raw_cards = f.read()
         cards = json.loads(raw_cards)
     
     matches = list()
-    for card in cards['cards']:
-        if query in card['name']: 
+    for card in cards:
+        if query.lower() in card['name'].lower(): 
             matches.append(card)
 
     # Filter out Dups in json 
     # Keep card instance with has a multiverid 
-    unique_cards = {each['name'] : each for each in matches if "multiverseid" in each}.values()
-    print(GREEN + "Found " + str(len(unique_cards)) + " unique matches" + ENDC)
-    for i, card in enumerate(unique_cards):
+    unique_matches = {each['name'] : each for each in matches if "multiverseid" in each}.values()
+    print(GREEN + "Found " + str(len(unique_matches)) + " unique matches" + ENDC)
+    for card in unique_matches:
         if args.text:
             display_card_text(card)
         if args.image:
