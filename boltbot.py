@@ -3,6 +3,7 @@ import os.path
 import json
 import argparse as arg
 import requests as req
+import difflib
 from io import BytesIO
 from PIL import Image
 
@@ -13,6 +14,8 @@ ENDC = '\033[0m'
 #CONSTS
 CARDS_FILE = 'all_cards.json'
 MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
+NUM_OF_MATCHES = 5
+MATCH_CUTOFF = 0.2
 
 # TODO: Define updated function based on local sets vs queired sets
 
@@ -48,7 +51,8 @@ def get_all_cards():
 def get_card(query, args):
     matches = list()
     unique_matches = list() 
-    exact_match = None
+    card_names = list() 
+    matched_card = None
 
     with open(CARDS_FILE, 'r') as f:
         raw_cards = f.read()
@@ -57,24 +61,37 @@ def get_card(query, args):
     
     for card in cards:
         if query.lower() == card['name'].lower():
-            exact_match = card
+            matched_card = card
             break
         elif query.lower() in card['name'].lower(): 
             matches.append(card)
             
-    # Filter out Dups in json 
-    # Keep card instance with has a multiverid 
-    if exact_match == None:
-        unique_matches = {each['name'] : each for each in matches if "multiverseid" in each}.values()
-        print(GREEN + "Found " + str(len(unique_matches)) + " unique matches" + ENDC)
-    else:
-        unique_matches.append(exact_match)
+    # No exact match found, Get closet match 
+    if matched_card == None:
+        # Filter out Dups in json 
+        # Keep card instance with has a multiverid 
+        unique_matches = {each['name'] : each for each in matches if "multiverseid" in each}.values() # TODO Filter Dups from card file ??
+        print(GREEN + "Matches Found: " + str(len(unique_matches)) + ENDC)
+        if len(unique_matches) == 0:
+            print(RED + "Failed to get unique match" + ENDC)
+            return
+        card_names = [card['name'] for card in unique_matches]
+        best_matches = difflib.get_close_matches(query.lower(), card_names, NUM_OF_MATCHES, MATCH_CUTOFF)
+        if len(best_matches) == 0:
+            print(RED + "Failed to get closed match" + ENDC)
+            return
+        
+        matched_card =  [card for card in unique_matches if card['name'] == best_matches[0]][0]
+        if len(best_matches) > 1:
+            print("Best 5 matches: ")
+            for name in best_matches:
+                print(name)
 
-    for card in unique_matches:
-        if args.text:
-            display_card_text(card)
-        if args.image:
-            display_card_image(card)
+    # Display matched card 
+    if args.text:
+        display_card_text(matched_card)
+    if args.image:
+        display_card_image(matched_card)
 
     return
 
