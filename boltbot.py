@@ -82,6 +82,10 @@ def get_card(query, args):
             return
         
         matched_card =  [card for card in unique_matches if card['name'] == best_matches[0]][0]
+        if matched_card == None:
+            print(RED + "Failed to get match in list of best matches" + ENDC)
+            return
+
         if len(best_matches) > 1:
             print("Best 5 matches: ")
             for name in best_matches:
