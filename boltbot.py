@@ -58,7 +58,6 @@ def get_card(query, args):
         raw_cards = f.read()
         cards = json.loads(raw_cards)
     
-    
     for card in cards:
         if query.lower() == card['name'].lower():
             matched_card = card
@@ -75,6 +74,7 @@ def get_card(query, args):
         if len(unique_matches) == 0:
             print(RED + "Failed to get unique match" + ENDC)
             return
+
         card_names = [card['name'] for card in unique_matches]
         best_matches = difflib.get_close_matches(query.lower(), card_names, NUM_OF_MATCHES, MATCH_CUTOFF)
         if len(best_matches) == 0:
