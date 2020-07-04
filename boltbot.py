@@ -46,24 +46,36 @@ def get_all_cards():
         json.dump(cards, f, ensure_ascii = False, indent = 4) 
         
 def get_card(query, args):
+    matches = list()
+    unique_matches = list() 
+    exact_match = None
+
     with open(CARDS_FILE, 'r') as f:
         raw_cards = f.read()
         cards = json.loads(raw_cards)
     
-    matches = list()
+    
     for card in cards:
-        if query.lower() in card['name'].lower(): 
+        if query.lower() == card['name'].lower():
+            exact_match = card
+            break
+        elif query.lower() in card['name'].lower(): 
             matches.append(card)
-
+            
     # Filter out Dups in json 
     # Keep card instance with has a multiverid 
-    unique_matches = {each['name'] : each for each in matches if "multiverseid" in each}.values()
-    print(GREEN + "Found " + str(len(unique_matches)) + " unique matches" + ENDC)
+    if exact_match == None:
+        unique_matches = {each['name'] : each for each in matches if "multiverseid" in each}.values()
+        print(GREEN + "Found " + str(len(unique_matches)) + " unique matches" + ENDC)
+    else:
+        unique_matches.append(exact_match)
+
     for card in unique_matches:
         if args.text:
             display_card_text(card)
         if args.image:
             display_card_image(card)
+
     return
 
 def display_card_text(card):
