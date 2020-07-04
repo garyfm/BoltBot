@@ -17,14 +17,14 @@ API Used: https://docs.magicthegathering.io/
 SDK: Didnt allow for querying local copy of cards
 
 ### Completed:
-* Gets a list of unquie cards that match the query - DOne
-* Can display cards using Pillow  - Done
-* Get all cards - Done
-* Search local cards - Done
+* Gets a list of unquie cards that match the query
+* Can display cards using Pillow
+* Get all cards
+* Search local cards
+* Imporve searching
+* Exact matching vs Best fit vs List all match
 
 ### TODO:
-* Imporve searching
 * Store unique cards
-* Exact matching vs Best fit vs List all match
 * Store list of sets
 * Check for new cards (Set update)
