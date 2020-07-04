@@ -6,21 +6,23 @@ import requests as req
 import difflib
 from io import BytesIO
 from PIL import Image
+import discord
 
 # Colors
 RED = '\033[91m'
 GREEN = '\033[92m'
 ENDC = '\033[0m'
+
 #CONSTS
 CARDS_FILE = 'all_cards.json'
 MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
 NUM_OF_MATCHES = 5
 MATCH_CUTOFF = 0.2
 
-# TODO: Define updated function based on local sets vs queired sets
+# TODO Remove this and regen key !!!!!!
+TOKEN = 'NzI5MDgxMjE3MzE1NTA0MTc5.XwD2oA.mmkWBeVAPpaLGnRnXUrXGA74v_M'
 
 def get_all_cards():
-    #query_rsp = req.get(MTG_API_URL, params={'name':"Lightning"})
     query_rsp = req.get(MTG_API_URL)
     if query_rsp.status_code != 200:
         print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
@@ -76,7 +78,7 @@ def get_card(query, args):
             return
 
         card_names = [card['name'] for card in unique_matches]
-        best_matches = difflib.get_close_matches(query.lower(), card_names, NUM_OF_MATCHES, MATCH_CUTOFF)
+        best_matches = difflib.get_close_matches(query.lower(), card_names, NUM_OF_MATCHES, MATCH_CUTOFF) # TODO Use this for getting inital matches ??
         if len(best_matches) == 0:
             print(RED + "Failed to get closed match" + ENDC)
             return
@@ -124,13 +126,27 @@ def main():
 
     args = parser.parse_args()
 
-    if not os.path.exists(CARDS_FILE):
-        # TODO Check if empty
-        get_all_cards() 
+    #if not os.path.exists(CARDS_FILE):
+    #    # TODO Check if empty
+    #    get_all_cards() 
 
-    get_card(args.query, args)
+    #get_card(args.query, args)
     
 
+    client = discord.Client()
+    @client.event
+    async def on_ready():
+        print('We have logged in as {0.user}'.format(client))
+
+    @client.event
+    async def on_message(message):
+        if message.author == client.user:
+            return
+
+        if message.content.startswith('!hello'):
+            await message.channel.send('Hello!')
+
+    client.run(TOKEN)
 
 if __name__ == "__main__":
     main()
