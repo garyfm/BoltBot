@@ -49,7 +49,7 @@ def get_all_cards():
 
         json.dump(cards, f, ensure_ascii = False, indent = 4) 
         
-def get_card(query, args):
+def get_card(query):
     matches = list()
     unique_matches = list() 
     card_names = list() 
@@ -92,12 +92,6 @@ def get_card(query, args):
             for name in best_matches:
                 print(name)
 
-    # Display matched card 
-    if args.text:
-        display_card_text(matched_card)
-    if args.image:
-        display_card_image(matched_card)
-
     return matched_card
 
 def display_card_text(card):
@@ -119,14 +113,6 @@ def main():
 
     print(GREEN + "BoltBot" + ENDC)
 
-    #parser = arg.ArgumentParser(description='BoltBot: MTG Card Search Bot')
-    #parser.add_argument('query',help='a query of card names')
-    #parser.add_argument('-t', '--text', help='Displays card text', action="store_true")
-    #parser.add_argument('-i', '--image', help='Displays card image', action="store_true")
-    #parser.add_argument('-e', '--exact', help='Exact match for card name', action="store_true")
-
-    #args = parser.parse_args()
-
     #if not os.path.exists(CARDS_FILE):
     #    # TODO Check if empty
     #    get_all_cards() 
@@ -140,35 +126,27 @@ def main():
         print('We have logged in as {0.user}'.format(bot))
         print('Bolt the Bird!'.format(bot))
 
-    @bot.event
-    async def on_message(message):
-        if message.author == bot.user:
-            return
+    #@bot.event
+    #async def on_message(message):
+    #    if message.author == bot.user:
+    #        return
 
-        if message.content.startswith('!hello'):
-            await message.channel.send("Hello World")
+    #    if message.content.startswith('!hello'):
+    #        await message.channel.send("Hello World")
+    #        pass
 
     @bot.command()
     async def test(ctx, arg):
         await ctx.send(arg) 
 
-#    @bot.command()
-#    async def card(ctx, args):
-#        parser = arg.ArgumentParser(description='BoltBot: MTG Card Search Bot')
-#        parser.add_argument('query',help='a query of card names')
-#        parser.add_argument('-t', '--text', help='Displays card text', action="store_true")
-#        parser.add_argument('-i', '--image', help='Displays card image', action="store_true")
-#        parser.add_argument('-e', '--exact', help='Exact match for card name', action="store_true")
-#
-#        args = parser.parse_args()
-#
-#        card = get_card(args.query, args)
-#        await ctx.send(card['imageUrl'])
-#
+    @bot.command()
+    async def card(ctx, query):
+        card = get_card(query)
+        await ctx.send(card['imageUrl'])
+
     with open(TOKEN_FILE, 'r') as f:
         raw_token = f.read()
         token = json.loads(raw_token)
-    
 
     bot.run(token['DISCORD_TOKEN'])
 
