@@ -126,7 +126,6 @@ def main():
 
     @bot.command()
     async def card(ctx, query):
-        response = ""
         card = get_card(query)
         if card != None:
             response = card['imageUrl']
