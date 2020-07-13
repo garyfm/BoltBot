@@ -82,17 +82,13 @@ def get_card(query):
             print(RED + "Failed to get closed match" + ENDC)
             return
         
-        matched_card =  [card for card in unique_matches if card['name'] == best_matches[0]][0]
+        matched_card = [card for card in unique_matches if card['name'] == best_matches[0]][0]
         if matched_card == None:
             print(RED + "Failed to get match in list of best matches" + ENDC)
             return
 
-        if len(best_matches) > 1:
-            print("Best 5 matches: ")
-            for name in best_matches:
-                print(name)
-
     return matched_card
+
 
 def display_card_text(card):
     print(GREEN + "Card Found: " + str(card['name']) + ENDC)
@@ -113,12 +109,10 @@ def main():
 
     print(GREEN + "BoltBot" + ENDC)
 
-    #if not os.path.exists(CARDS_FILE):
-    #    # TODO Check if empty
-    #    get_all_cards() 
+    if not os.path.exists(CARDS_FILE):
+        # TODO Check if empty
+        get_all_cards() 
 
-    #get_card(args.query, args)
-    
     bot = commands.Bot(command_prefix = '!')
 
     @bot.event
@@ -126,23 +120,20 @@ def main():
         print('We have logged in as {0.user}'.format(bot))
         print('Bolt the Bird!'.format(bot))
 
-    #@bot.event
-    #async def on_message(message):
-    #    if message.author == bot.user:
-    #        return
-
-    #    if message.content.startswith('!hello'):
-    #        await message.channel.send("Hello World")
-    #        pass
-
     @bot.command()
     async def test(ctx, arg):
         await ctx.send(arg) 
 
     @bot.command()
     async def card(ctx, query):
+        response = ""
         card = get_card(query)
-        await ctx.send(card['imageUrl'])
+        if card != None:
+            response = card['imageUrl']
+        else:
+            response = "Countered! Failed to find card"
+
+        await ctx.send(response)
 
     with open(TOKEN_FILE, 'r') as f:
         raw_token = f.read()
