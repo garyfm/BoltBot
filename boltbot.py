@@ -6,21 +6,22 @@ import requests as req
 import difflib
 from io import BytesIO
 from PIL import Image
+import discord
+from discord.ext import commands
 
 # Colors
 RED = '\033[91m'
 GREEN = '\033[92m'
 ENDC = '\033[0m'
+
 #CONSTS
 CARDS_FILE = 'all_cards.json'
+TOKEN_FILE = 'token.json'
 MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
 NUM_OF_MATCHES = 5
 MATCH_CUTOFF = 0.2
 
-# TODO: Define updated function based on local sets vs queired sets
-
 def get_all_cards():
-    #query_rsp = req.get(MTG_API_URL, params={'name':"Lightning"})
     query_rsp = req.get(MTG_API_URL)
     if query_rsp.status_code != 200:
         print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
@@ -48,7 +49,7 @@ def get_all_cards():
 
         json.dump(cards, f, ensure_ascii = False, indent = 4) 
         
-def get_card(query, args):
+def get_card(query):
     matches = list()
     unique_matches = list() 
     card_names = list() 
@@ -76,28 +77,18 @@ def get_card(query, args):
             return
 
         card_names = [card['name'] for card in unique_matches]
-        best_matches = difflib.get_close_matches(query.lower(), card_names, NUM_OF_MATCHES, MATCH_CUTOFF)
+        best_matches = difflib.get_close_matches(query.lower(), card_names, NUM_OF_MATCHES, MATCH_CUTOFF) # TODO Use this for getting inital matches ??
         if len(best_matches) == 0:
             print(RED + "Failed to get closed match" + ENDC)
             return
         
-        matched_card =  [card for card in unique_matches if card['name'] == best_matches[0]][0]
+        matched_card = [card for card in unique_matches if card['name'] == best_matches[0]][0]
         if matched_card == None:
             print(RED + "Failed to get match in list of best matches" + ENDC)
             return
 
-        if len(best_matches) > 1:
-            print("Best 5 matches: ")
-            for name in best_matches:
-                print(name)
+    return matched_card
 
-    # Display matched card 
-    if args.text:
-        display_card_text(matched_card)
-    if args.image:
-        display_card_image(matched_card)
-
-    return
 
 def display_card_text(card):
     print(GREEN + "Card Found: " + str(card['name']) + ENDC)
@@ -114,23 +105,40 @@ def display_card_image(card):
     return
 
 def main():
+    token = None
+
     print(GREEN + "BoltBot" + ENDC)
-
-    parser = arg.ArgumentParser(description='BoltBot: MTG Card Search Bot')
-    parser.add_argument('query',help='a query of card names')
-    parser.add_argument('-t', '--text', help='Displays card text', action="store_true")
-    parser.add_argument('-i', '--image', help='Displays card image', action="store_true")
-    parser.add_argument('-e', '--exact', help='Exact match for card name', action="store_true")
-
-    args = parser.parse_args()
 
     if not os.path.exists(CARDS_FILE):
         # TODO Check if empty
         get_all_cards() 
 
-    get_card(args.query, args)
-    
+    bot = commands.Bot(command_prefix = '!')
 
+    @bot.event
+    async def on_ready():
+        print('We have logged in as {0.user}'.format(bot))
+        print('Bolt the Bird!'.format(bot))
+
+    @bot.command()
+    async def test(ctx, arg):
+        await ctx.send(arg) 
+
+    @bot.command()
+    async def card(ctx, query):
+        card = get_card(query)
+        if card != None:
+            response = card['imageUrl']
+        else:
+            response = "Countered! Failed to find card"
+
+        await ctx.send(response)
+
+    with open(TOKEN_FILE, 'r') as f:
+        raw_token = f.read()
+        token = json.loads(raw_token)
+
+    bot.run(token['DISCORD_TOKEN'])
 
 if __name__ == "__main__":
     main()

@@ -23,6 +23,7 @@ SDK: Didnt allow for querying local copy of cards
 * Search local cards
 * Imporve searching
 * Exact matching vs Best fit vs List all match
+* Discord integration
 
 ### TODO:
 * Store unique cards
