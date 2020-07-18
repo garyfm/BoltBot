@@ -17,12 +17,14 @@ ENDC = '\033[0m'
 #CONSTS
 CARDS_FILE = 'all_cards.json'
 TOKEN_FILE = 'token.json'
-MTG_API_URL = "https://api.magicthegathering.io/v1/cards"
+SET_LIST_FILE = 'set_list.json'
+MTG_CARD_API = "https://api.magicthegathering.io/v1/cards"
+MTG_SET_API = "https://api.magicthegathering.io/v1/sets"
 NUM_OF_MATCHES = 5
 MATCH_CUTOFF = 0.2
 
 def get_all_cards():
-    query_rsp = req.get(MTG_API_URL)
+    query_rsp = req.get(MTG_CARD_API)
     if query_rsp.status_code != 200:
         print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
         os.remove(CARDS_FILE)
@@ -57,9 +59,13 @@ def get_card(query):
 
     with open(CARDS_FILE, 'r') as f:
         raw_cards = f.read()
+        # TODO: Loading all MTG cards ever 
+        # into ram in json is not a good idea!!!!
         cards = json.loads(raw_cards)
     
     for card in cards:
+        # TODO: Would it be quiker to get all matches then check for an exact match ?
+        # It would half the checks
         if query.lower() == card['name'].lower():
             matched_card = card
             break
@@ -104,15 +110,35 @@ def display_card_image(card):
     card_image.show()
     return
 
+def get_all_sets():
+    query_rsp = req.get(MTG_SET_API)
+    if query_rsp.status_code != 200:
+        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+        if os.path.exists(SET_LIST_FILE):
+            os.remove(SET_LIST_FILE)
+        return query_rsp.status_code
+
+    with open(SET_LIST_FILE, 'w') as f:
+        set_list = json.loads(query_rsp.text)
+        json.dump(set_list, f, ensure_ascii = False, indent = 4) 
+
+    set_codes = [mtg_set['code'] for mtg_set in set_list['sets']]
+    return set_codes
+
 def main():
     token = None
 
     print(GREEN + "BoltBot" + ENDC)
 
-    if not os.path.exists(CARDS_FILE):
-        # TODO Check if empty
+    # Setup Card Data
+    if not os.path.exists(CARDS_FILE) or os.stat(CARDS_FILE).st_size == 0:
         get_all_cards() 
 
+    if not os.path.exists(SET_LIST_FILE) or os.stat(SET_LIST_FILE).st_size == 0:
+        get_all_sets()
+    # Check for updates
+
+    # Setup Discord Bot
     bot = commands.Bot(command_prefix = '!')
 
     @bot.event
