@@ -118,15 +118,35 @@ def get_all_sets():
             os.remove(SET_LIST_FILE)
         return query_rsp.status_code
 
-    with open(SET_LIST_FILE, 'w') as f:
-        set_list = json.loads(query_rsp.text)
-        json.dump(set_list, f, ensure_ascii = False, indent = 4) 
-
+    set_list = json.loads(query_rsp.text)
+    # Extract set codes
     set_codes = [mtg_set['code'] for mtg_set in set_list['sets']]
     return set_codes
 
+def update_cards():
+    new_set_list = get_all_sets()
+
+    with open(SET_LIST_FILE, 'r') as f:
+        current_set_list_raw = f.read()
+
+    # Extract set codes
+    current_set_list = json.loads(current_set_list_raw)
+    current_set_list = [mtg_set['code'] for mtg_set in current_set_list['sets']]
+
+    # Check for new sets
+    if len(new_set_list) == len(current_set_list):
+        print(GREEN + "No new sets")
+        return
+    else:
+        print(GREEN + "Getting new sets")
+        set_difference = list(set(new_set_list) - set(current_set_list))
+        for mtg_set in set_difference:
+            print(mtg_set)
+        return
+
 def main():
     token = None
+    set_list = None 
 
     print(GREEN + "BoltBot" + ENDC)
 
@@ -135,8 +155,14 @@ def main():
         get_all_cards() 
 
     if not os.path.exists(SET_LIST_FILE) or os.stat(SET_LIST_FILE).st_size == 0:
-        get_all_sets()
+        set_list = get_all_sets()
+        with open(SET_LIST_FILE, 'w') as f:
+            json.dump(set_list, f, ensure_ascii = False, indent = 4) 
+
+
     # Check for updates
+    if set_list == None:
+       update_cards()
 
     # Setup Discord Bot
     bot = commands.Bot(command_prefix = '!')
