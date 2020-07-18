@@ -112,9 +112,7 @@ def update_cards():
 
     with open(SET_LIST_FILE, 'r') as f:
         current_sets_list_raw = f.read()
-        # Extract set codes
         current_set_list = json.loads(current_sets_list_raw)
-        current_set_list = [mtg_set['code'] for mtg_set in current_set_list['sets']]
 
     # Check for new sets
     if len(new_sets_list) == len(current_set_list):
