@@ -24,8 +24,11 @@ SDK: Didnt allow for querying local copy of cards
 * Imporve searching
 * Exact matching vs Best fit vs List all match
 * Discord integration
+* Store list of sets
+* Check for new cards (Set update)
 
 ### TODO:
 * Store unique cards
-* Store list of sets
-* Check for new cards (Set update)
+* Optimisation's: 
+* Imporve search time 
+* Improve writing of all cards to file 
