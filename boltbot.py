@@ -87,7 +87,7 @@ def get_card(query):
         if len(best_matches) == 0:
             print(RED + "Failed to get closed match" + ENDC)
             return
-        best_card = best_matches[0][0] 
+            
         matched_card = [card for card in unique_matches if card['name'] == best_matches[0][0]][0]
         if matched_card == None:
             print(RED + "Failed to get match in list of best matches" + ENDC)
