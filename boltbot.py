@@ -1,13 +1,12 @@
-#!/bin/python3
+#!/usr/bin/python3
 import os.path
 import json
-import argparse as arg
 import requests as req
 import difflib
-from io import BytesIO
-from PIL import Image
 import discord
 from discord.ext import commands
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 # Colors
 RED = '\033[91m'
@@ -70,8 +69,10 @@ def get_card(query):
         if query.lower() == card['name'].lower():
             matched_card = card
             break
-        elif query.lower() in card['name'].lower(): 
-            matches.append(card)
+        else:
+            match_ratio =  fuzz.partial_ratio(query.lower(), card['name'].lower())
+            if match_ratio > 70:
+                matches.append(card)
             
     # No exact match found, Get closet match 
     if matched_card == None:
@@ -84,12 +85,13 @@ def get_card(query):
             return
 
         card_names = [card['name'] for card in unique_matches]
-        best_matches = difflib.get_close_matches(query.lower(), card_names, NUM_OF_MATCHES, MATCH_CUTOFF) # TODO Use this for getting inital matches ??
-        if len(best_matches) == 0:
+        #best_match = process.extractOne(query.lower(), card_names, scorer=fuzz.token_set_ratio) # TODO Use this for getting inital matches ??
+        best_match = process.extract(query.lower(), card_names, scorer=fuzz.ratio)# TODO Use this for getting inital matches ??
+        if len(best_match) == 0:
             print(RED + "Failed to get closed match" + ENDC)
             return
-        
-        matched_card = [card for card in unique_matches if card['name'] == best_matches[0]][0]
+
+        matched_card = [card for card in unique_matches if card['name'] == best_match[0][0]][0]
         if matched_card == None:
             print(RED + "Failed to get match in list of best matches" + ENDC)
             return
