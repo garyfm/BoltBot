@@ -195,8 +195,7 @@ def main():
             response = card['imageUrl']
         else:
             response = "Countered! Failed to find card"
-
-        await ctx.send(response)
+        await ctx.send(ctx.message.author.mention +  "\r\n" + response)
 
     with open(TOKEN_FILE, 'r') as f:
         raw_token = f.read()
