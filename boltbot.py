@@ -140,7 +140,7 @@ def main():
     # Initilise Set List
     if not os.path.exists(SET_LIST_ENDPOINT) or os.stat(SET_LIST_ENDPOINT).st_size == 0:
         set_list = get_sets_list()
-        if set_list != True:
+        if set_list == False:
             print(RED + "ERROR: Failed to initilise set data" + ENDC)
             return 
         with open(SET_LIST_ENDPOINT, 'w') as f:
