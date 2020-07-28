@@ -16,12 +16,11 @@ GREEN = '\033[92m'
 ENDC = '\033[0m'
 
 #CONSTS
-CARDS_FILE = 'atomic_cards.json'
 TOKEN_FILE = 'token.json'
-SET_LIST_FILE = 'set_list.json'
 MTG_BASE_API = "https://mtgjson.com/api/v5/" 
 ALL_CARD_ENDPOINT = "AllPrintings.sqlite.zip"
 ALL_CARD_SQL = "AllPrintings.sqlite"
+SET_LIST_ENDPOINT = "SetList.json"
 
 def get_card_database(endpoint): 
     print(GREEN + "Get: " + endpoint + ENDC)
@@ -61,6 +60,7 @@ def query_mtg_db(query):
 
 def get_card_url(card_name):
 
+    print(GREEN + "Get: " + card_name + ENDC)
     # Get all cards to search
     query = "SELECT DISTINCT name FROM cards WHERE multiverseid"
     all_cards = query_mtg_db(query)
@@ -81,14 +81,16 @@ def get_card_url(card_name):
     return image_url
 
 def get_sets_list():
-    query_rsp = req.get(MTG_SET_API)
-    if query_rsp.status_code != 200:
-        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+    print(GREEN + "Get: " + SET_LIST_ENDPOINT + ENDC)
+
+    rsp = req.get(MTG_BASE_API + SET_LIST_ENDPOINT)
+    if rsp.status_code != 200:
+        print(RED + "ERROR: Query Failed [HTTP Status Code: " + rsp.status_code + "]" +ENDC)
         return False
 
-    set_list = json.loads(query_rsp.text)
+    set_list = json.loads(rsp.text)
     # Extract set codes
-    set_codes = [mtg_set['code'] for mtg_set in set_list['sets']]
+    set_codes = [set_code['code'] for set_code in set_list['data']]
     return set_codes
 
 def update_cards():
@@ -138,20 +140,19 @@ def main():
 
     # Initilise Card Database
     if not os.path.exists(ALL_CARD_SQL) or os.stat(ALL_CARD_SQL).st_size == 0:
-        # Get all Cards
         status = get_card_database(ALL_CARD_ENDPOINT) 
         if status != True:
             print(RED + "ERROR: Failed to initilise card database" + ENDC)
             return 
 
-    #if not os.path.exists(SET_LIST_FILE) or os.stat(SET_LIST_FILE).st_size == 0:
-    #    # Get list of Sets
-    #    set_list = get_sets_list()
-    #    if query_resp == False:
-    #        print(RED + "Failed to initilise set data" + ENDC)
-    #        return 
-    #    with open(SET_LIST_FILE, 'w') as f:
-    #        json.dump(set_list, f, ensure_ascii = False, indent = 4) 
+    # Initilise Set List
+    if not os.path.exists(SET_LIST_ENDPOINT) or os.stat(SET_LIST_ENDPOINT).st_size == 0:
+        set_list = get_sets_list()
+        if set_list == False:
+            print(RED + "ERROR: Failed to initilise set data" + ENDC)
+            return 
+        with open(SET_LIST_ENDPOINT, 'w') as f:
+            json.dump(set_list, f, ensure_ascii = False, indent = 4) 
 
     ## Check for updates
     #if set_list == None:
