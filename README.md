@@ -1,12 +1,10 @@
 # BoltBot - WIP
-A discord bot for getting MTG Cards in chat
+A discord bot for getting MTG Cards in chat.
+API Used: https://mtgjson.com/
+
 ## Dependancies
 * discord
 * fuzzywuzzy
-
-## WIP Notes
-
-API Used: https://docs.magicthegathering.io/
 
 ### Completed:
 * Gets a list of unquie cards that match the query
@@ -18,9 +16,10 @@ API Used: https://docs.magicthegathering.io/
 * Discord integration
 * Store list of sets
 * Check for new cards (Set update)
+* Fuzzy Searching
+* Change to MTGJSON API
+* Store Cards in SQL Database
+* Integrate SQLite for better searching
 
 ### TODO:
-* Store unique cards
-* Optimisation's: 
-* Imporve search time 
-* Improve writing of all cards to file 
+* Input Sanitisation
