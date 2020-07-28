@@ -15,7 +15,8 @@ RED = '\033[91m'
 GREEN = '\033[92m'
 ENDC = '\033[0m'
 
-#CONSTS
+#CONSTS 
+MATCH_CUT_OFF = 80
 TOKEN_FILE = 'token.json'
 MTG_BASE_API = "https://mtgjson.com/api/v5/" 
 ALL_CARD_ENDPOINT = "AllPrintings.sqlite.zip"
@@ -69,8 +70,9 @@ def get_card_url(card_name):
         return
 
     # Fuzzy Search
-    # TODO: At cut off point for match
     match = process.extract(card_name, all_cards, scorer=fuzz.token_sort_ratio)
+    if match[0][1] < MATCH_CUT_OFF:
+       return False 
     # Construct Image url using the cards multiverse ID
     query = "SELECT multiverseid FROM cards WHERE name=\"" + str(match[0][0]) + "\"AND multiverseid"
     multiverse_id = query_mtg_db(query)
@@ -162,12 +164,11 @@ def main():
 
     @bot.command()
     async def card(ctx, name):
-        image_url = None
         image_url = get_card_url(name)
-        if image_url != None:
-            response = image_url 
-        else:
+        if image_url == False :
             response = "Countered! Failed to find card"
+        else:
+            response = image_url 
 
         await ctx.send(ctx.message.author.mention +  "\r\n" + response)
 
