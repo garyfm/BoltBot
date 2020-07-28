@@ -1,12 +1,14 @@
 #!/usr/bin/python3
 import os.path
 import json
+import zipfile
 import requests as req
 import difflib
 import discord
 from discord.ext import commands
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+import sqlite3
 
 # Colors
 RED = '\033[91m'
@@ -14,89 +16,69 @@ GREEN = '\033[92m'
 ENDC = '\033[0m'
 
 #CONSTS
-CARDS_FILE = 'all_cards.json'
+CARDS_FILE = 'atomic_cards.json'
 TOKEN_FILE = 'token.json'
 SET_LIST_FILE = 'set_list.json'
-MTG_BASE_API = "https://api.magicthegathering.io/v1/"
-MTG_CARD_API = "https://api.magicthegathering.io/v1/cards"
-MTG_SET_API = "https://api.magicthegathering.io/v1/sets"
-NUM_OF_MATCHES = 5
-MATCH_CUTOFF = 0.2
+MTG_BASE_API = "https://mtgjson.com/api/v5/" 
+ATOMIC_CARD_ENDPOINT = "AtomicCards.json.zip"
+ALL_CARD_ENDPOINT = "AllPrintings.sqlite.zip"
+ALL_CARD_SQL = "AllPrintings.sqlite"
 
-def query_cards_api(query):
-    print(GREEN + "Query: " + query + ENDC)
-    query_rsp = req.get(query)
-    if query_rsp.status_code != 200:
-        print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
+def get_card_database(endpoint): 
+    print(GREEN + "Get: " + endpoint + ENDC)
+    
+    rsp = req.get(MTG_BASE_API + endpoint, stream=True)
+    if rsp.status_code != 200:
+        print(RED + "ERROR: Query Failed HTTP Status Code: " + rsp.status_code + ENDC)
         return False
 
-    print(GREEN + "\tGot Page: 1"  + ENDC)
-    page_count = 1
+    with open(endpoint, 'wb') as f:
+        for chunk in rsp.iter_content(chunk_size=8192):
+            if rsp.status_code != 200:
+                print(RED + "ERROR: Get DB Failed HTTP Status Code: " + rsp.status_code + ENDC)
+                return False
+            if chunk: # filter out keep-alive new chunks
+                f.write(chunk)
 
-    cards = json.loads(query_rsp.text)
-    cards = cards['cards']
+    with zipfile.ZipFile(endpoint) as zf:
+        zf.extractall("./")
 
-    while 'next' in query_rsp.links:
-        query_rsp = req.get(query_rsp.links['next']['url'])
-        if query_rsp.status_code != 200:
-            # TODO If fails delete the file
-            print(RED + "ERROR: Query Failed HTTP Status Code: " + query_rsp.status_code + ENDC)
-            return False
-        
-        page = json.loads(query_rsp.text)
-        page = page['cards']
-        cards.extend(page)
-        page_count  += 1 
-        print(GREEN + "\tGot Page: " + str(page_count) + ENDC)
-    print(GREEN + "Query Complete" + ENDC)
-    return cards
-            
-def get_card(query):
-    matches = list()
-    unique_matches = list() 
-    card_names = list() 
-    matched_card = None
+    print(GREEN + "Card DB download Complete" + ENDC)
+    return 
 
-    with open(CARDS_FILE, 'r') as f:
-        raw_cards = f.read()
-        # TODO: Loading all MTG cards ever 
-        # into ram in json is not a good idea!!!!
-        cards = json.loads(raw_cards)
+def query_mtg_db(query):
+    try:
+        connection = sqlite3.connect(ALL_CARD_SQL)
+        # Return results as list
+        connection.row_factory = lambda cursor, row: row[0] 
+        cursor = connection.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        return result
+    except Exception as error:
+        print(RED + "ERROR: Query Failed [" + str(error) + "]" + ENDC)
+        return False
+
+def get_card_url(card_name):
+
+    # Get all cards to search
+    query = "SELECT DISTINCT name FROM cards WHERE multiverseid"
+    all_cards = query_mtg_db(query)
+    if all_cards == False:
+        print(RED + "Failed to get cards from DB" + ENDC)
+        return
+
+    # Fuzzy Search
+    match = process.extract(card_name, all_cards, scorer=fuzz.token_sort_ratio)
+    # Construct Image url using the cards multiverse ID
+    query = "SELECT multiverseid FROM cards WHERE name=\"" + str(match[0][0]) + "\"AND multiverseid"
+    multiverse_id = query_mtg_db(query)
+    if multiverse_id == False:
+        print(RED + "Failed to get multiverse id for matched card" + ENDC)
+        return
+    image_url = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" + str(multiverse_id[0]) + "&type=card"
     
-    for card in cards:
-        # TODO: Would it be quiker to get all matches then check for an exact match ?
-        # It would half the checks
-        if query.lower() == card['name'].lower():
-            matched_card = card
-            break
-        else:
-            match_ratio =  fuzz.partial_ratio(query.lower(), card['name'].lower())
-            if match_ratio > 70:
-                matches.append(card)
-            
-    # No exact match found, Get closet match 
-    if matched_card == None:
-        # Filter out Dups in json 
-        # Keep card instance with has a multiverid 
-        unique_matches = {each['name'] : each for each in matches if "multiverseid" in each}.values() # TODO Filter Dups from card file ??
-        print(GREEN + "Matches Found: " + str(len(unique_matches)) + ENDC)
-        if len(unique_matches) == 0:
-            print(RED + "Failed to get unique match" + ENDC)
-            return
-
-        card_names = [card['name'] for card in unique_matches]
-        #best_match = process.extractOne(query.lower(), card_names, scorer=fuzz.token_set_ratio) # TODO Use this for getting inital matches ??
-        best_match = process.extract(query.lower(), card_names, scorer=fuzz.ratio)# TODO Use this for getting inital matches ??
-        if len(best_match) == 0:
-            print(RED + "Failed to get closed match" + ENDC)
-            return
-
-        matched_card = [card for card in unique_matches if card['name'] == best_match[0][0]][0]
-        if matched_card == None:
-            print(RED + "Failed to get match in list of best matches" + ENDC)
-            return
-
-    return matched_card
+    return image_url
 
 def get_sets_list():
     query_rsp = req.get(MTG_SET_API)
@@ -155,30 +137,34 @@ def main():
 
     print(GREEN + "BoltBot" + ENDC)
 
+    #get_card_database(ALL_CARD_ENDPOINT)
+    
+    #get_card_sql(query)
+    #get_card("Ponder")
     # Setup Card Data
-    if not os.path.exists(CARDS_FILE) or os.stat(CARDS_FILE).st_size == 0:
-        # Get all Cards
-        query_resp = query_cards_api(MTG_CARD_API) 
-        if query_resp == False:
-            print(RED + "Failed to initilise card data" + ENDC)
-            return 
-        with open(CARDS_FILE, 'w') as f:
-            json.dump(query_resp, f, ensure_ascii = False, indent = 4) 
+    #if not os.path.exists(CARDS_FILE) or os.stat(CARDS_FILE).st_size == 0:
+    #    # Get all Cards
+    #    query_resp = query_cards_api(MTG_CARD_API) 
+    #    if query_resp == False:
+    #        print(RED + "Failed to initilise card data" + ENDC)
+    #        return 
+    #    with open(CARDS_FILE, 'w') as f:
+    #        json.dump(query_resp, f, ensure_ascii = False, indent = 4) 
 
-    if not os.path.exists(SET_LIST_FILE) or os.stat(SET_LIST_FILE).st_size == 0:
-        # Get list of Sets
-        set_list = get_sets_list()
-        if query_resp == False:
-            print(RED + "Failed to initilise set data" + ENDC)
-            return 
-        with open(SET_LIST_FILE, 'w') as f:
-            json.dump(set_list, f, ensure_ascii = False, indent = 4) 
+    #if not os.path.exists(SET_LIST_FILE) or os.stat(SET_LIST_FILE).st_size == 0:
+    #    # Get list of Sets
+    #    set_list = get_sets_list()
+    #    if query_resp == False:
+    #        print(RED + "Failed to initilise set data" + ENDC)
+    #        return 
+    #    with open(SET_LIST_FILE, 'w') as f:
+    #        json.dump(set_list, f, ensure_ascii = False, indent = 4) 
 
-    # Check for updates
-    if set_list == None:
-       update_cards()
+    ## Check for updates
+    #if set_list == None:
+    #   update_cards()
 
-    # Setup Discord Bot
+    ## Setup Discord Bot
     bot = commands.Bot(command_prefix = '!')
 
     @bot.event
@@ -191,12 +177,14 @@ def main():
         await ctx.send(arg) 
 
     @bot.command()
-    async def card(ctx, query):
-        card = get_card(query)
-        if card != None:
-            response = card['imageUrl']
+    async def card(ctx, name):
+        image_url = None
+        image_url = get_card_url(name)
+        if image_url != None:
+            response = image_url 
         else:
             response = "Countered! Failed to find card"
+
         await ctx.send(ctx.message.author.mention +  "\r\n" + response)
 
     with open(TOKEN_FILE, 'r') as f:
