@@ -69,6 +69,7 @@ def get_card_url(card_name):
         return
 
     # Fuzzy Search
+    # TODO: At cut off point for match
     match = process.extract(card_name, all_cards, scorer=fuzz.token_sort_ratio)
     # Construct Image url using the cards multiverse ID
     query = "SELECT multiverseid FROM cards WHERE name=\"" + str(match[0][0]) + "\"AND multiverseid"
@@ -96,46 +97,35 @@ def get_sets_list():
 def update_cards():
     new_sets_list = get_sets_list()
 
-    with open(SET_LIST_FILE, 'r') as f:
+    with open(SET_LIST_ENDPOINT, 'r') as f:
         current_sets_list_raw = f.read()
         current_set_list = json.loads(current_sets_list_raw)
 
     # Check for new sets
     if len(new_sets_list) == len(current_set_list):
-        print(GREEN + "No new sets")
+        print(GREEN + "No new sets" + ENDC)
         return
 
     set_difference = list(set(new_sets_list) - set(current_set_list))
     
-    # Save new sets to file
-    with open(CARDS_FILE, 'r+') as f:
-        raw_cards = f.read()
-        # TODO: Loading all MTG cards ever 
-        # into ram in json is not a good idea!!!!
-        cards = json.loads(raw_cards)
-
     # Get new sets
-    for mtg_set in set_difference:
-        print(GREEN + "Getting New Set: " + mtg_set + ENDC)
-        query_resp = query_cards_api(MTG_BASE_API + "cards?set=" + mtg_set.lower()) 
-        if query_resp == False:
-            print(RED + "Failed to get cards from " + mtg_set + ENDC)
-            return 
-        cards.extend(query_resp)
-        
-    with open(CARDS_FILE, 'w+') as f:
-        json.dump(cards, f, ensure_ascii = False, indent = 4) 
-
-    print(GREEN + "Update Cards Complete" + ENDC)
+    print(GREEN + "New Sets found: " + str(set_difference) + ENDC)
+    status = get_card_database(ALL_CARD_ENDPOINT) 
+    if status != True:
+        print(RED + "ERROR: Failed to initilise card database" + ENDC)
+        return 
+            
     # Update set list
-    with open(SET_LIST_FILE, 'w') as f:
+    with open(SET_LIST_ENDPOINT, 'w') as f:
         json.dump(new_sets_list, f, ensure_ascii = False, indent = 4) 
 
+    print(GREEN + "Update Cards Complete" + ENDC)
     return
 
 def main():
     token = None
     set_list = None 
+    status = None
     print(GREEN + "BoltBot" + ENDC)
 
     # Initilise Card Database
@@ -148,17 +138,17 @@ def main():
     # Initilise Set List
     if not os.path.exists(SET_LIST_ENDPOINT) or os.stat(SET_LIST_ENDPOINT).st_size == 0:
         set_list = get_sets_list()
-        if set_list == False:
+        if set_list != True:
             print(RED + "ERROR: Failed to initilise set data" + ENDC)
             return 
         with open(SET_LIST_ENDPOINT, 'w') as f:
             json.dump(set_list, f, ensure_ascii = False, indent = 4) 
 
-    ## Check for updates
-    #if set_list == None:
-    #   update_cards()
+    # Check for updates
+    if set_list == None:
+       update_cards()
 
-    ## Setup Discord Bot
+    # Setup Discord Bot
     bot = commands.Bot(command_prefix = '!')
 
     @bot.event
