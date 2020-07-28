@@ -20,7 +20,6 @@ CARDS_FILE = 'atomic_cards.json'
 TOKEN_FILE = 'token.json'
 SET_LIST_FILE = 'set_list.json'
 MTG_BASE_API = "https://mtgjson.com/api/v5/" 
-ATOMIC_CARD_ENDPOINT = "AtomicCards.json.zip"
 ALL_CARD_ENDPOINT = "AllPrintings.sqlite.zip"
 ALL_CARD_SQL = "AllPrintings.sqlite"
 
@@ -29,13 +28,14 @@ def get_card_database(endpoint):
     
     rsp = req.get(MTG_BASE_API + endpoint, stream=True)
     if rsp.status_code != 200:
-        print(RED + "ERROR: Query Failed HTTP Status Code: " + rsp.status_code + ENDC)
+        print(RED + "ERROR: GET Failed [HTTP Status Code: " + rsp.status_code + "]"+ ENDC)
         return False
-
+    # Download DB in chunks
     with open(endpoint, 'wb') as f:
         for chunk in rsp.iter_content(chunk_size=8192):
             if rsp.status_code != 200:
-                print(RED + "ERROR: Get DB Failed HTTP Status Code: " + rsp.status_code + ENDC)
+                print(RED + "ERROR: GET Chunk Failed [HTTP Status Code: " + rsp.status_code + "]" + ENDC)
+                os.remove(endpoint)
                 return False
             if chunk: # filter out keep-alive new chunks
                 f.write(chunk)
@@ -44,7 +44,7 @@ def get_card_database(endpoint):
         zf.extractall("./")
 
     print(GREEN + "Card DB download Complete" + ENDC)
-    return 
+    return True
 
 def query_mtg_db(query):
     try:
@@ -65,7 +65,7 @@ def get_card_url(card_name):
     query = "SELECT DISTINCT name FROM cards WHERE multiverseid"
     all_cards = query_mtg_db(query)
     if all_cards == False:
-        print(RED + "Failed to get cards from DB" + ENDC)
+        print(RED + "ERROR: Failed to get cards from DB" + ENDC)
         return
 
     # Fuzzy Search
@@ -74,7 +74,7 @@ def get_card_url(card_name):
     query = "SELECT multiverseid FROM cards WHERE name=\"" + str(match[0][0]) + "\"AND multiverseid"
     multiverse_id = query_mtg_db(query)
     if multiverse_id == False:
-        print(RED + "Failed to get multiverse id for matched card" + ENDC)
+        print(RED + "ERROR: Failed to get multiverse id for matched card" + ENDC)
         return
     image_url = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" + str(multiverse_id[0]) + "&type=card"
     
@@ -134,22 +134,15 @@ def update_cards():
 def main():
     token = None
     set_list = None 
-
     print(GREEN + "BoltBot" + ENDC)
 
-    #get_card_database(ALL_CARD_ENDPOINT)
-    
-    #get_card_sql(query)
-    #get_card("Ponder")
-    # Setup Card Data
-    #if not os.path.exists(CARDS_FILE) or os.stat(CARDS_FILE).st_size == 0:
-    #    # Get all Cards
-    #    query_resp = query_cards_api(MTG_CARD_API) 
-    #    if query_resp == False:
-    #        print(RED + "Failed to initilise card data" + ENDC)
-    #        return 
-    #    with open(CARDS_FILE, 'w') as f:
-    #        json.dump(query_resp, f, ensure_ascii = False, indent = 4) 
+    # Initilise Card Database
+    if not os.path.exists(ALL_CARD_SQL) or os.stat(ALL_CARD_SQL).st_size == 0:
+        # Get all Cards
+        status = get_card_database(ALL_CARD_ENDPOINT) 
+        if status != True:
+            print(RED + "ERROR: Failed to initilise card database" + ENDC)
+            return 
 
     #if not os.path.exists(SET_LIST_FILE) or os.stat(SET_LIST_FILE).st_size == 0:
     #    # Get list of Sets
