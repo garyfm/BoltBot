@@ -106,7 +106,7 @@ def update_cards():
     # Check for new sets
     if len(new_sets_list) == len(current_set_list):
         print(GREEN + "No new sets" + ENDC)
-        return
+        return False
 
     set_difference = list(set(new_sets_list) - set(current_set_list))
     
@@ -115,14 +115,14 @@ def update_cards():
     status = get_card_database(ALL_CARD_ENDPOINT) 
     if status != True:
         print(RED + "ERROR: Failed to initilise card database" + ENDC)
-        return 
+        return False
             
     # Update set list
     with open(SET_LIST_ENDPOINT, 'w') as f:
         json.dump(new_sets_list, f, ensure_ascii = False, indent = 4) 
 
     print(GREEN + "Update Cards Complete" + ENDC)
-    return
+    return set_difference
 
 def main():
     token = None
@@ -159,7 +159,7 @@ def main():
         print('Bolt the Bird!'.format(bot))
 
     @bot.command()
-    async def test(ctx, arg):
+    async def cardtest(ctx, arg):
         await ctx.send(arg) 
 
     @bot.command()
@@ -171,6 +171,16 @@ def main():
             response = image_url 
 
         await ctx.send(ctx.message.author.mention +  "\r\n" + response)
+
+    @bot.command()
+    async def cardupdate(ctx):
+        print("Updating Card Database")
+        new_sets = update_cards()
+        if new_sets:
+            await ctx.send(ctx.message.author.mention + " new sets found:\r\n" + str(new_sets)); 
+        else:
+            await ctx.send(ctx.message.author.mention + " no new sets found")
+
 
     with open(TOKEN_FILE, 'r') as f:
         raw_token = f.read()
