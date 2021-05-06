@@ -32,6 +32,10 @@ To request a card in chat use the `!card` command:
 ```
 !card <card_name>
 ```
+
+To check for new sets use the `!cardupdate` command.
+
+
 Examples:
 ```
 !card opt
