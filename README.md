@@ -28,7 +28,7 @@ The token can be found on the Discord Developer portal once you create the bot:
 ![image](https://github.com/garyfm/BoltBot/blob/master/pic/discord_token.PNG)
 
 ## Usage
-To get a request a card in chat simple use the `!card` command:
+To request a card in chat use the `!card` command:
 ```
 !card <card_name>
 ```
