@@ -12,6 +12,10 @@ python3 -m pip install -U discord.py
 ```
 pip3 install fuzzywuzzy
 ```
+* Python-Levenshtein
+```
+pip3 install python-Levenshtein
+```
 
 ## Setup
 Create a discord bot account for the bot to use:
