@@ -25,7 +25,7 @@ Create a file called token.json. This will be used to store the bots auth token.
 ```
 The token can be found on the Discord Developer portal once you create the bot:
 
-![alt text](https://github.com/garyfm/BoltBot/pic/discord_token.png)
+![image](https://github.com/garyfm/BoltBot/blob/master/pic/discord_token.PNG)
 
 ## Usage
 To get a request a card in chat simple use the `!card` command:
@@ -36,10 +36,10 @@ Examples:
 ```
 !card opt
 ```
-![alt text](https://github.com/garyfm/BoltBot/pic/example_opt.png)
+![image](https://github.com/garyfm/BoltBot/blob/master/pic/example_opt.PNG)
 
 ```
 !card "Lightning Bolt"
 ```
-![alt text](https://github.com/garyfm/BoltBot/pic/example_lightning_bolt.png)
+![image](https://github.com/garyfm/BoltBot/blob/master/pic/example_lightning_bolt.PNG)
 
